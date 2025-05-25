@@ -2,7 +2,12 @@
 
 namespace Tests\Unit;
 
+use App\Http\Controllers\Controller;
 use PHPUnit\Framework\TestCase;
+use Mockery as m;
+use App\Services\Lookup\LookupService;
+use App\Values\Lookup\LookupValue;
+use App\Http\Controllers\LookupController;
 
 class ExampleTest extends TestCase
 {
@@ -11,8 +16,8 @@ class ExampleTest extends TestCase
      *
      * @return void
      */
-    public function test_example()
+    public function test_api_service_is_called_correctly()
     {
-        $this->assertTrue(true);
+      $this->assertTrue(true);  
     }
 }

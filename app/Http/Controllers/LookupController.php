@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use App\Services\Lookup\LookupService;
+use App\Values\Lookup\LookupValue;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Class LookupController
@@ -12,7 +15,31 @@ use Illuminate\Http\Request;
  */
 class LookupController extends Controller
 {
-    public function lookup(Request $request) {
+    public function lookup(Request $request, LookupService $lookupService) {
+
+      /**
+       * Wrap it in trys and catches 
+       * Add caching 
+       */
+
+    $validator = Validator::make($request->all(), [
+      'type' => 'required|in:xbl,minecraft,steam',
+      'id' => 'required_if:type,steam',
+      'username' => 'string|sometimes'
+]);
+      if ($validator->fails()) {
+        return response()->json($validator->errors('Steam must use an ID'), 400);
+      }
+        $lookupValue = new LookupValue($request->all());
+        $response = $lookupService->handle($lookupValue);
+        return [
+          'username' => $response->username,
+          'id' => $response->id,
+          'avatar' => $response->avatar
+        ];
+
+
+
         if ($request->get('type') == 'minecraft') {
             if ($request->get('username')) {
                 $username = $request->get('username');
@@ -95,7 +122,5 @@ class LookupController extends Controller
                 ];
             }
         }
-        //We can't handle this - maybe provide feedback?
-        die();
     }
 }
