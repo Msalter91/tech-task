@@ -57,6 +57,9 @@ class ExampleTest extends TestCase
 
       $response = $this->get('/lookup?type=minecraft&username=Notch');
       $response->assertStatus(200);
+      $this->assertEquals('test', $response->json()['username']);
+      $this->assertEquals('test', $response->json()['id']);
+      $this->assertEquals('https://crafatar.com/avatarstest', $response->json()['avatar']);
       
     }
 
