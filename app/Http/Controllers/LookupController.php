@@ -27,10 +27,13 @@ class LookupController extends Controller
             'type' => 'required|in:xbl,minecraft,steam',
             'id' => 'required_if:type,steam',
             'username' => 'string|sometimes'
+            ],
+            [
+              'id.required_if' => "Steam only supports IDs"
             ]
         );
         if ($validator->fails()) {
-            return response()->json($validator->errors('Steam only supports IDs'), 400);
+            return response()->json($validator->errors(), 400);
         }
 
         $requestData = $request->all();

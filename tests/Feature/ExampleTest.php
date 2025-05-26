@@ -20,7 +20,7 @@ class ExampleTest extends TestCase
         $response = $this->get('/lookup?type=steam&username=test');
 
         $response->assertStatus(400);
-        $this->assertEquals('The id field is required when type is steam.' ,$response->json()['id'][0]);
+        $this->assertEquals('Steam only supports IDs' ,$response->json()['id'][0]);
     }
 
     public function test_it_correctly_rejects_incorrect_types()
