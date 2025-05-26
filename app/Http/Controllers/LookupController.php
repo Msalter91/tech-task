@@ -30,7 +30,7 @@ class LookupController extends Controller
             ]
         );
         if ($validator->fails()) {
-            return response()->json($validator->errors('Steam must use an ID'), 400);
+            return response()->json($validator->errors('Steam only supports IDs'), 400);
         }
 
         $requestData = $request->all();
