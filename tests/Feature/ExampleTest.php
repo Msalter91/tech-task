@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Services\Lookup\LookupService;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Response;
 use Tests\TestCase;
 use Mockery as m;
 
@@ -25,11 +27,13 @@ class ExampleTest extends TestCase
     {
 
         $mockService = m::mock(LookupService::class);
+        app()->instance(LookupService::class, $mockService);
+        $mockService->shouldReceive('handle')->never();
+
         $response = $this->get('/lookup?type=cheese&username=test');
 
         $response->assertStatus(400);
         $this->assertEquals('The selected type is invalid.' ,$response->json()['type'][0]);
-        $mockService->shouldReceive('handle')->never();
     }
 
     public function test_it_correctly_calls_the_handle_function()
@@ -40,5 +44,22 @@ class ExampleTest extends TestCase
 
       $this->get('/lookup?type=minecraft&username=test');
     }
+
+    public function test_it_correctly_returns_200()
+    {
+      $string = json_encode(['id' => 'test', 'name' => 'test', 'avatar' => 'test']);
+      $response = new Response(200, ['Content-Type' => 'application/json'], $string);
+
+      $guzzle = m::mock(Client::class);
+      app()->instance(Client::class, $guzzle);
+      $guzzle->shouldReceive('get')->once()->andReturn($response);
+
+
+      $response = $this->get('/lookup?type=minecraft&username=Notch');
+      dd($response);
+      $response->assertStatus(200);
+      
+    }
+
 
 }

@@ -1,11 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use App\Services\Lookup\LookupService;
 use App\Values\Lookup\LookupValue;
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -15,112 +18,44 @@ use Illuminate\Support\Facades\Validator;
  */
 class LookupController extends Controller
 {
-    public function lookup(Request $request, LookupService $lookupService) {
+    public function lookup(Request $request, LookupService $lookupService, Client $client)
+    {
 
-      /**
-       * Wrap it in trys and catches 
-       * Add caching 
-       */
+        $validator = Validator::make(
+            $request->all(),
+            [
+            'type' => 'required|in:xbl,minecraft,steam',
+            'id' => 'required_if:type,steam',
+            'username' => 'string|sometimes'
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json($validator->errors('Steam must use an ID'), 400);
+        }
 
-    $validator = Validator::make($request->all(), [
-      'type' => 'required|in:xbl,minecraft,steam',
-      'id' => 'required_if:type,steam',
-      'username' => 'string|sometimes'
-]);
-      if ($validator->fails()) {
-        return response()->json($validator->errors('Steam must use an ID'), 400);
-      }
-        $lookupValue = new LookupValue($request->all());
-        $response = $lookupService->handle($lookupValue);
-        return [
-          'username' => $response->username,
-          'id' => $response->id,
-          'avatar' => $response->avatar
+        $requestData = $request->all();
+        $cacheKey = $request['type'] . '-' . ($request['username'] ?? $request['id']);
+
+        $cacheHit = Cache::get($cacheKey);
+
+        if ($cacheHit) {
+            return $cacheHit;
+        }
+        $lookupValue = new LookupValue($requestData);
+        try {
+            $response = $lookupService->handle($lookupValue);
+        } catch (\Error $e) {
+            return response($e->getMessage(), 400);
+        }
+
+        $response = [
+          'username' => $response->getUsername(),
+          'id' => $response->getId(),
+          'avatar' => $response->getAvatar(),
         ];
 
+        Cache::add($cacheKey, $response, 300);
 
-
-        if ($request->get('type') == 'minecraft') {
-            if ($request->get('username')) {
-                $username = $request->get('username');
-                $userId = false;
-            }
-            if ($request->get('id')){
-                $username=false;
-                $userId = $request->get('id');
-            }
-
-            if ($username) {
-                $guzzle = new Client();
-                $response = $guzzle->get(
-                    "https://api.mojang.com/users/profiles/minecraft/{$username}"
-                );
-
-                $match = json_decode($response->getBody()->getContents());
-
-                return [
-                    'username' => $match->name,
-                    'id' => $match->id,
-                    'avatar' => "https://crafatar.com/avatars" . $match->id
-                ];
-            }
-
-            if ($userId)
-            {
-                $guzzle = new Client();
-                $response = $guzzle->get(
-                    "https://sessionserver.mojang.com/session/minecraft/profile/{$userId}"
-                );
-
-                $match = json_decode($response->getBody()->getContents());
-                return [
-                    'username' => $match->name,
-                    'id' => $match->id,
-                    'avatar' => "https://crafatar.com/avatars" . $match->id
-                ];
-            }
-        } elseif ($request->get('type')=='steam') {
-            if ($request->get("username")) {
-                die("Steam only supports IDs");
-            } else {
-                $id = $request->get("id");
-                $guzzle = new Client();
-                $url = "https://ident.tebex.io/usernameservices/4/username/{$id}";
-
-                $match = json_decode($guzzle->get($url)->getBody()->getContents());
-
-                return [
-                    'username' => $match->username,
-                    'id' => $match->id,
-                    'avatar' => $match->meta->avatar
-                ];
-            }
-
-        }elseif($request->get('type') === 'xbl'){
-            if ($request->get("username")) {
-                $guzzle = new Client();
-                $response = $guzzle->get("https://ident.tebex.io/usernameservices/3/username/" . $request->get("username") . "?type=username");
-                $profile = json_decode($response->getBody()->getContents());
-
-                return [
-                    'username' => $profile->username,
-                    'id' => $profile->id,
-                    'avatar' => $profile->meta->avatar
-                ];
-            }
-
-            if ($request->get("id")) {
-                $id = $request->get("id");
-                $guzzle = new Client();
-                $response = $guzzle->get("https://ident.tebex.io/usernameservices/3/username/" . $id);
-                $profile = json_decode($response->getBody()->getContents());
-
-                return [
-                    'username' => $profile->username,
-                    'id' => $profile->id,
-                    'avatar' => $profile->meta->avatar
-                ];
-            }
-        }
+        return $response;
     }
 }

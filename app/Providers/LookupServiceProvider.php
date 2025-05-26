@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Contracts\LookupInterface;
 use App\Services\Lookup\LookupService;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Client;
 
 class LookupServiceProvider extends ServiceProvider
 {
