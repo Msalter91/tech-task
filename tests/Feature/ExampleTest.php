@@ -56,7 +56,6 @@ class ExampleTest extends TestCase
 
 
       $response = $this->get('/lookup?type=minecraft&username=Notch');
-      dd($response);
       $response->assertStatus(200);
       
     }
